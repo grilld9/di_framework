@@ -1,0 +1,9 @@
+[{"className":"first_name",
+  "name":"name1",
+  "lifeCycle":"THREAD",
+  "constructorParams":["one","two"]},
+  {"className":"first_name",
+    "name":"name2",
+    "lifeCycle":"THREAD",
+    "constructorParams":["three","four"]
+  }]
