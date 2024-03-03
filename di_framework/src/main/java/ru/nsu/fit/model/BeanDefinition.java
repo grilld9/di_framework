@@ -1,13 +1,15 @@
-package ru.nsu.fit.parsing;
+package ru.nsu.fit.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class Bean {
+@Builder
+public class BeanDefinition {
     private String className;
     private String name;
     private LifeCycle lifeCycle;

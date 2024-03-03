@@ -1,5 +1,5 @@
 import org.junit.Test;
-import ru.nsu.fit.parsing.Bean;
+import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.parsing.ConfigurationParser;
 
 import java.io.IOException;
@@ -13,8 +13,8 @@ public class ConfigurationParserTests {
     public void simpleTest() throws IOException {
         Path path = FileSystems.getDefault().getPath("simple_test.json");
         ConfigurationParser parser = new ConfigurationParser();
-        List<Bean> beans = parser.parse(path);
-        for (Bean bean : beans) {
+        List<BeanDefinition> beans = parser.parse(path);
+        for (BeanDefinition bean : beans) {
             System.out.println(bean);
         }
     }
