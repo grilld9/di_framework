@@ -13,12 +13,11 @@ import ru.nsu.fit.parsing.ConfigurationParser;
 
 @Slf4j
 public class JsonContextCreator implements ContextCreator {
-
     @Override
     public List<BeanDefinition> createContext() {
         List<BeanDefinition> beans = ConfigurationParser.parse(Paths.get("src/main/resources/application.json"));
         for (BeanDefinition bean : beans) {
-            Class<?> aClass = validateByClassName(bean.getClassName());
+            Class<?> aClass = validateByClassName(bean.getClassName(), "ru.nsu.fit");
             validateConstructorParams(bean.getConstructorParams(), aClass);
         }
         return beans;
@@ -27,7 +26,7 @@ public class JsonContextCreator implements ContextCreator {
     private void validateConstructorParams(List<String> constructorParams, Class<?> aClass) {
         Set<Class<?>> paramsTypes = constructorParams
             .stream()
-            .map(this::validateByClassName)
+            .map(param -> validateByClassName(param, aClass.getPackageName()))
             .collect(Collectors.toSet());
         if (Arrays.stream(aClass.getConstructors())
             .noneMatch(constructor ->
@@ -35,11 +34,11 @@ public class JsonContextCreator implements ContextCreator {
                 .collect(Collectors.toSet())
                 .equals(paramsTypes))) throw new RuntimeException("Конструктор "
             + "с параметрами " + constructorParams
-            + " не найден в классе " + aClass.getName() );
+            + " не найден в классе " + aClass.getName());
     }
 
-    private Class<?> validateByClassName(String className) {
-        return new Reflections("ru.nsu.fit", new SubTypesScanner(false))
+    private Class<?> validateByClassName(String className, String packageName) {
+        return new Reflections(packageName, new SubTypesScanner(false))
             .getSubTypesOf(Object.class)
             .stream()
             .filter(aClass -> aClass.getName().equals(className))
@@ -49,6 +48,11 @@ public class JsonContextCreator implements ContextCreator {
 
     @Override
     public List<BeanDefinition> createContext(String packageName) {
-        return null;
+        List<BeanDefinition> beans = ConfigurationParser.parse(Paths.get("src/main/resources/application.json"));
+        for (BeanDefinition bean : beans) {
+            Class<?> aClass = validateByClassName(bean.getClassName(), packageName);
+            validateConstructorParams(bean.getConstructorParams(), aClass);
+        }
+        return beans;
     }
 }
