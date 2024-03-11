@@ -2,10 +2,12 @@ package ru.nsu.fit;
 
 import java.util.Set;
 
+import ru.nsu.fit.context.ContextFactory;
 import ru.nsu.fit.model.ApplicationContext;
 
 public class LotusApplication {
     private final Set<Class<?>> primarySources;
+    private final ContextFactory contextFactory = new ContextFactory();
 
     public LotusApplication(Class<?> primaryClass) {
         this.primarySources = Set.of(primaryClass);
@@ -20,6 +22,6 @@ public class LotusApplication {
     }
 
     private ApplicationContext run(String[] args) {
-        return new ApplicationContext();
+        return contextFactory.getApplicationContext();
     }
 }
