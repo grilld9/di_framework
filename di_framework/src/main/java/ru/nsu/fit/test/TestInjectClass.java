@@ -1,8 +1,21 @@
 package ru.nsu.fit.test;
 
-import ru.nsu.fit.annotation.Inject;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import ru.nsu.fit.annotation.Component;
 
+@Component
+@Getter
+@RequiredArgsConstructor
 public class TestInjectClass {
-    @Inject
-    private TestBeanClass bean;
+    private String value;
+
+    private final TestBeanClass bean;
+
+    private TestInjectClass testInjectClass;
+
+    private TestBeanClass secondBean;
+
+    private TestBeanClass ololoBean;
+
 }

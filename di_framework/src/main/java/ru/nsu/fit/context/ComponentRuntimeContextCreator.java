@@ -25,7 +25,7 @@ public class ComponentRuntimeContextCreator implements ContextCreator {
 
     @Override
     public List<BeanDefinition> createContext() {
-        return new Reflections("ru.nsu.fit.parsing", new SubTypesScanner(false))
+        return new Reflections("ru.nsu.fit", new SubTypesScanner(false))
             .getSubTypesOf(Object.class)
             .stream()
             .filter(aClass -> BeanUtils.isAnnotatedWith(aClass, Component.class))
