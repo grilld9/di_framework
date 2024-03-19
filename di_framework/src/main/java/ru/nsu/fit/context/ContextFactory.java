@@ -1,16 +1,29 @@
 package ru.nsu.fit.context;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import ru.nsu.fit.injection.ConstructorInjectionProvider;
+import ru.nsu.fit.annotation.Inject;
+import ru.nsu.fit.exception.BeanInstantiationException;
+import ru.nsu.fit.exception.BeanParameterException;
+import ru.nsu.fit.exception.CircularDependencyException;
+import ru.nsu.fit.injection.FieldInjectionProvider;
 import ru.nsu.fit.injection.InjectionProvider;
+import ru.nsu.fit.injection.SetterInjectionProvider;
 import ru.nsu.fit.model.ApplicationContext;
 import ru.nsu.fit.model.BeanDefinition;
+import ru.nsu.fit.utility.BeanUtils;
+import ru.nsu.fit.utility.ClassUtils;
 
 public class ContextFactory {
     private final List<ContextCreator> contextCreators = List.of(
@@ -20,7 +33,8 @@ public class ContextFactory {
     );
 
     private final List<InjectionProvider> injectionProviderList = List.of(
-        new ConstructorInjectionProvider()
+        new FieldInjectionProvider(),
+        new SetterInjectionProvider()
     );
 
     public ApplicationContext getApplicationContext() {
@@ -28,41 +42,70 @@ public class ContextFactory {
             .map(ContextCreator::createContext)
             .toList();
         List<BeanDefinition> mergedContext = mergeContext(listOfListOfBeanDefinitions);
-        validateContext(mergedContext);
         ApplicationContext applicationContext = instantiateContextByBeanDefinitions(mergedContext);
         injectionProviderList.forEach(injectionProvider -> injectionProvider.inject(applicationContext));
         return applicationContext;
     }
 
     private ApplicationContext instantiateContextByBeanDefinitions(List<BeanDefinition> mergedContext) {
-        return new ApplicationContext(
-            mergedContext.stream()
-                .map(beanDefinition -> {
-                    try {
-                        return Class.forName(beanDefinition.getClassName());
-                    } catch (ClassNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toMap(Function.identity(), this::initBean)));
+        Map<Class<?>, BeanDefinition> classToDefinition = mergedContext.stream()
+            .collect(Collectors.toMap(beanDef -> ClassUtils.getClass(beanDef.getClassName()), Function.identity()));
+        Map<Class<?>, Object> classToInstance = classToDefinition.keySet().stream()
+            .map(aClass -> initBean(aClass, classToDefinition, new LinkedList<>()))
+            .collect(Collectors.toMap(Object::getClass, Function.identity()));
+        return new ApplicationContext(classToInstance);
     }
 
-    private Object initBean(Class<?> aClass) {
+    private Object initBean(
+        Class<?> creationClass,
+        Map<Class<?>, BeanDefinition> classToBeanDef,
+        List<Class<?>> creationChain
+    ) {
         try {
-            Constructor<?> constructor = Arrays.stream(aClass.getConstructors())
-                .findFirst()
-                .orElseThrow();
-            return constructor.newInstance();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
-            throw new RuntimeException(ex.getMessage());
+            if (creationChain.contains(creationClass)) {
+                throw new CircularDependencyException(creationChain, creationClass);
+            }
+            creationChain.add(creationClass);
+            Optional<Constructor<?>> optionalConstructor = Arrays.stream(creationClass.getDeclaredConstructors())
+                .filter(constructor -> BeanUtils.isAnnotatedWith(constructor, Inject.class))
+                .findFirst();
+            Constructor<?> defaultConstructor = optionalConstructor.isEmpty() ?
+                getNoArgsConstructor(creationClass) : optionalConstructor.get();
+            Object[] args = Arrays.stream(defaultConstructor.getParameters())
+                .map(Parameter::getType)
+                .map(parameter -> validateClass(parameter, creationClass, classToBeanDef))
+                .map(parameter -> initBean(parameter, classToBeanDef, creationChain))
+                .toArray();
+            return defaultConstructor.newInstance(args);
+        } catch (ReflectiveOperationException | NoSuchElementException ex) {
+            throw new BeanInstantiationException(creationClass);
         }
     }
 
-    private void validateContext(List<BeanDefinition> mergedContext) {
-        System.out.println("Everything is ok");
+    private Class<?> validateClass(
+        Class<?> parameterType,
+        Class<?> creationClass,
+        Map<Class<?>, BeanDefinition> classToBeanDef
+    ) {
+        if (!classToBeanDef.containsKey(parameterType)) {
+            throw new BeanParameterException(creationClass, parameterType);
+        }
+        return parameterType;
+    }
+
+    private Constructor<?> getNoArgsConstructor(Class<?> aClass) {
+        long finalFieldCount = Arrays.stream(aClass.getDeclaredFields())
+            .filter(field -> Modifier.isFinal(field.getModifiers()))
+            .count();
+        return Arrays.stream(aClass.getConstructors())
+            .filter(constructor -> constructor.getParameters().length == finalFieldCount)
+            .findFirst()
+            .orElseThrow();
     }
 
     private List<BeanDefinition> mergeContext(List<List<BeanDefinition>> listOfListOfBeanDefinitions) {
-        return listOfListOfBeanDefinitions.get(0);
+        return listOfListOfBeanDefinitions.stream()
+            .flatMap(Collection::stream)
+            .toList();
     }
 }

@@ -10,9 +10,4 @@ public class TestClassWithConfigurationAndBeans {
     TestBeanClass testBeanClass() {
         return new TestBeanClass(100);
     }
-
-    @Bean
-    TestBeanClass testBeanClass(int digit) {
-        return new TestBeanClass(digit);
-    }
 }
