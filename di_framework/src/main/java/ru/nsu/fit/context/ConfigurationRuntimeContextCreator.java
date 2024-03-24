@@ -10,6 +10,7 @@ import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import ru.nsu.fit.annotation.Bean;
 import ru.nsu.fit.annotation.Configuration;
+import ru.nsu.fit.annotation.Scope;
 import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 import ru.nsu.fit.utility.BeanUtils;
@@ -44,10 +45,15 @@ public class ConfigurationRuntimeContextCreator implements ContextCreator {
     }
 
     private BeanDefinition toBeanDefinition(Method method) {
+        LifeCycle lifeCycle = Arrays.stream(method.getAnnotationsByType(Scope.class))
+                .map(Scope::type)
+                .findFirst()
+                .orElse(LifeCycle.SINGLETON);
+
         return BeanDefinition.builder()
             .name(method.getName())
             .className(method.getReturnType().getName())
-            .lifeCycle(LifeCycle.SINGLETON)
+            .lifeCycle(lifeCycle)
             .constructorParams(Arrays.stream(method.getParameters()).map(Parameter::getName).toList())
             .build();
     }

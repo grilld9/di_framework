@@ -53,10 +53,10 @@ public class ContextFactory {
         Map<Class<?>, Object> classToInstance = classToDefinition.keySet().stream()
             .map(aClass -> initBean(aClass, classToDefinition, new LinkedList<>()))
             .collect(Collectors.toMap(Object::getClass, Function.identity()));
-        return new ApplicationContext(classToInstance);
+        return new ApplicationContext(classToInstance, classToDefinition, this);
     }
 
-    private Object initBean(
+    public Object initBean(
         Class<?> creationClass,
         Map<Class<?>, BeanDefinition> classToBeanDef,
         List<Class<?>> creationChain
