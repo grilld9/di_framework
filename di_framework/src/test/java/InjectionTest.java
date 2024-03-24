@@ -14,6 +14,6 @@ public class InjectionTest {
 
     @Test
     public void injectionTest() {
-        applicationContext.getType(Object.class);
+        applicationContext.getBean(Object.class);
     }
 }
