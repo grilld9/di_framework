@@ -5,9 +5,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
+import ru.nsu.fit.LotusApplication;
 import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.parsing.ConfigurationParser;
 
@@ -17,7 +19,7 @@ public class JsonContextCreator implements ContextCreator {
     public List<BeanDefinition> createContext() {
         List<BeanDefinition> beans = ConfigurationParser.parse(Paths.get("src/main/resources/application.json"));
         for (BeanDefinition bean : beans) {
-            Class<?> aClass = validateByClassName(bean.getClassName(), "ru.nsu.fit");
+            Class<?> aClass = validateByClassName(bean.getClassName(), LotusApplication.class.getPackageName());
             validateConstructorParams(bean.getConstructorParams(), aClass);
         }
         return beans;
@@ -31,10 +33,13 @@ public class JsonContextCreator implements ContextCreator {
         if (Arrays.stream(aClass.getConstructors())
             .noneMatch(constructor ->
                 Arrays.stream(constructor.getParameterTypes())
-                .collect(Collectors.toSet())
-                .equals(paramsTypes))) throw new RuntimeException("Конструктор "
-            + "с параметрами " + constructorParams
-            + " не найден в классе " + aClass.getName());
+                    .collect(Collectors.toSet())
+                    .equals(paramsTypes))) {
+            throw new RuntimeException("Конструктор с параметрами %s не найден в классе %s".formatted(
+                constructorParams,
+                aClass.getName()
+            ));
+        }
     }
 
     private Class<?> validateByClassName(String className, String packageName) {
@@ -42,8 +47,7 @@ public class JsonContextCreator implements ContextCreator {
             .getSubTypesOf(Object.class)
             .stream()
             .filter(aClass -> aClass.getName().equals(className))
-            .findAny().orElseThrow(() -> new RuntimeException("Класса " + className
-                + " не существует"));
+            .findAny().orElseThrow(() -> new RuntimeException("Класса " + className + " не существует"));
     }
 
     @Override

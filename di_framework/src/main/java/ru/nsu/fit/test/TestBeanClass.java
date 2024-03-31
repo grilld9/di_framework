@@ -1,13 +1,15 @@
 package ru.nsu.fit.test;
 
+import javax.inject.Inject;
+
+import lombok.Getter;
+
+@Getter
 public class TestBeanClass {
-    int digit = 4;
+    int digit;
 
+    @Inject
     public TestBeanClass() {
-
-    }
-
-    public TestBeanClass(int digit) {
-        this.digit = digit;
+        this.digit = 4;
     }
 }

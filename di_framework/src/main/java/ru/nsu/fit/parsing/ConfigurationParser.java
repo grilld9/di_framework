@@ -25,7 +25,7 @@ public class ConfigurationParser {
             };
             beans = gson.fromJson(reader, beanListType);
         } catch (IOException e) {
-            log.error("Ошибка чтения файла конфигурации: {}", e.getMessage());
+            log.warn("Ошибка чтения файла конфигурации: {}", e.getMessage());
         }
         return beans;
     }

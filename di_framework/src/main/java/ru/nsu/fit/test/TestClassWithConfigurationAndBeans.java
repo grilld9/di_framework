@@ -8,6 +8,6 @@ public class TestClassWithConfigurationAndBeans {
 
     @Bean
     TestBeanClass testBeanClass() {
-        return new TestBeanClass(100);
+        return new TestBeanClass();
     }
 }

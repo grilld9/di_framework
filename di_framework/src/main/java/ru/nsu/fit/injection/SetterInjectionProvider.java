@@ -1,6 +1,5 @@
 package ru.nsu.fit.injection;
 
-import ru.nsu.fit.annotation.Inject;
 import ru.nsu.fit.model.ApplicationContext;
 import ru.nsu.fit.utility.BeanUtils;
 import ru.nsu.fit.utility.InjectingUtils;
@@ -12,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.inject.Inject;
 
 public class SetterInjectionProvider implements InjectionProvider {
 
