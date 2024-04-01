@@ -5,6 +5,6 @@ import ru.nsu.fit.annotation.Scope;
 import ru.nsu.fit.model.LifeCycle;
 
 @Component
-@Scope(type = LifeCycle.PROTOTYPE)
-public class TestClassWithRetentionPolicyRuntime {
+@Scope(LifeCycle.PROTOTYPE)
+public class TestPrototypeComponent {
 }
