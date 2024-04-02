@@ -14,8 +14,10 @@ import javax.inject.Inject;
 
 import ru.nsu.fit.exception.BeanDefinitionNotFoundException;
 import ru.nsu.fit.exception.BeanInstantiationException;
-import ru.nsu.fit.exception.BeanParameterException;
 import ru.nsu.fit.exception.CircularDependencyException;
+import ru.nsu.fit.injection.FieldInjectionProvider;
+import ru.nsu.fit.injection.InjectionProvider;
+import ru.nsu.fit.injection.SetterInjectionProvider;
 import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 import ru.nsu.fit.utility.BeanUtils;
@@ -27,17 +29,21 @@ public class BeanInitializer {
         new SingletonBeanFactory(this),
         new ThreadBeanFactory(this)
     );
+    private final List<InjectionProvider> injectionProviderList = List.of(
+        new FieldInjectionProvider(this),
+        new SetterInjectionProvider(this)
+    );
 
     public BeanInitializer(Map<String, BeanDefinition> beanDefinitions) {
         this.beanDefinitions = beanDefinitions;
     }
 
-    public <T> T doCreateBean(Class<T> targetClass) {
+    public <T> T getBean(Class<T> targetClass) {
         List<Class<?>> creationChain = new ArrayList<>();
         return doCreateBean(targetClass, creationChain);
     }
 
-    public Object doCreateBean(String name) {
+    public Object getBean(String name) {
         List<Class<?>> creationChain = new ArrayList<>();
         return doCreateBean(name, creationChain);
     }
@@ -67,9 +73,10 @@ public class BeanInitializer {
     }
 
     public Object initBean(
-        Class<?> creationClass,
+        Class<?> targetClass,
         List<Class<?>> creationChain
     ) {
+        Class<?> creationClass = getCreationType(targetClass);
         try {
             if (creationChain.contains(creationClass)) {
                 throw new CircularDependencyException(creationChain, creationClass);
@@ -82,19 +89,20 @@ public class BeanInitializer {
                 getNoArgsConstructor(creationClass) : optionalConstructor.get();
             Object[] args = Arrays.stream(defaultConstructor.getParameters())
                 .map(Parameter::getType)
-                .map(parameter -> getCreationType(parameter, creationClass))
                 .map(parameter -> doCreateBean(parameter, creationChain))
                 .toArray();
-            return defaultConstructor.newInstance(args);
+            Object createdBean = defaultConstructor.newInstance(args);
+            injectionProviderList.forEach(provider -> provider.inject(createdBean));
+            return createdBean;
         } catch (ReflectiveOperationException | NoSuchElementException ex) {
             throw new BeanInstantiationException(creationClass);
         }
     }
 
-    private Class<?> getCreationType(Class<?> parameterType, Class<?> creationClass) {
-        Optional<BeanDefinition> optionalBeanDefinition = getDefinitionByClass(parameterType);
+    private Class<?> getCreationType(Class<?> targetClass) {
+        Optional<BeanDefinition> optionalBeanDefinition = getDefinitionByClass(targetClass);
         if (optionalBeanDefinition.isEmpty()) {
-            throw new BeanParameterException(creationClass, parameterType);
+            throw new BeanDefinitionNotFoundException(targetClass);
         }
         return optionalBeanDefinition.get().getTargetClass();
     }
@@ -118,5 +126,11 @@ public class BeanInitializer {
         return beanDefinitions.values().stream()
             .filter(def -> def.getTargetClass().equals(targetClass))
             .findFirst();
+    }
+
+    public void initializeBeans() {
+        beanDefinitions.entrySet().stream()
+            .filter(def -> def.getValue().getLifeCycle() != LifeCycle.PROTOTYPE)
+            .forEach(def -> getBean(def.getKey()));
     }
 }

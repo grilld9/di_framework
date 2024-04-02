@@ -6,5 +6,5 @@ import ru.nsu.fit.model.LifeCycle;
 
 @Component
 @Scope(LifeCycle.PROTOTYPE)
-public class TestPrototypeComponent implements SomeInterface{
+public class TestPrototypeComponent implements SomeInterface {
 }

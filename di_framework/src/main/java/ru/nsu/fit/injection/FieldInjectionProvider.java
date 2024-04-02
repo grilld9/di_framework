@@ -1,23 +1,24 @@
 package ru.nsu.fit.injection;
 
+import lombok.RequiredArgsConstructor;
+import ru.nsu.fit.factory.BeanInitializer;
 import ru.nsu.fit.utility.BeanUtils;
 import ru.nsu.fit.utility.InjectingUtils;
 
 import java.util.Arrays;
-import java.util.Map;
 
 import javax.inject.Inject;
 
+@RequiredArgsConstructor
 public class FieldInjectionProvider implements InjectionProvider {
-    @Override
-    public void inject(Map<Class<?>, Object> beans) {
-        beans.values().forEach(obj -> injectAllFields(obj, beans));
-    }
+    private final BeanInitializer beanInitializer;
 
-    private void injectAllFields(Object obj, Map<Class<?>, Object> beans) {
-        Class<?> aClass = obj.getClass();
+    @Override
+    public void inject(Object bean) {
+        Class<?> aClass = bean.getClass();
         Arrays.stream(aClass.getDeclaredFields())
             .filter(field -> BeanUtils.isAnnotatedWith(field, Inject.class))
-            .forEach(field -> InjectingUtils.processInjecting(field, beans, obj));
+            .forEach(field -> InjectingUtils.processInjecting(field, beanInitializer.getBean(field.getType()), bean));
+
     }
 }
