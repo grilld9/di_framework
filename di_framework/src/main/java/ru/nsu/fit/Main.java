@@ -31,6 +31,8 @@ public class Main {
                 System.out.println(testThreadComponent);
                 testThreadComponent = context.getBean(TestThreadComponent.class);
                 System.out.println(testThreadComponent);
+                System.out.println("Here!");
+                System.out.println(testThreadComponent.getSomeInterface());
             });
             thread.start();
             thread.join();

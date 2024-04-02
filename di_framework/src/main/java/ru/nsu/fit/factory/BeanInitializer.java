@@ -82,7 +82,7 @@ public class BeanInitializer {
                 getNoArgsConstructor(creationClass) : optionalConstructor.get();
             Object[] args = Arrays.stream(defaultConstructor.getParameters())
                 .map(Parameter::getType)
-                .map(parameter -> validateClass(parameter, creationClass))
+                .map(parameter -> getCreationType(parameter, creationClass))
                 .map(parameter -> doCreateBean(parameter, creationChain))
                 .toArray();
             return defaultConstructor.newInstance(args);
@@ -91,11 +91,12 @@ public class BeanInitializer {
         }
     }
 
-    private Class<?> validateClass(Class<?> parameterType, Class<?> creationClass) {
-        if (getDefinitionByClass(parameterType).isEmpty()) {
+    private Class<?> getCreationType(Class<?> parameterType, Class<?> creationClass) {
+        Optional<BeanDefinition> optionalBeanDefinition = getDefinitionByClass(parameterType);
+        if (optionalBeanDefinition.isEmpty()) {
             throw new BeanParameterException(creationClass, parameterType);
         }
-        return parameterType;
+        return optionalBeanDefinition.get().getTargetClass();
     }
 
     private Constructor<?> getNoArgsConstructor(Class<?> aClass) {
@@ -109,6 +110,11 @@ public class BeanInitializer {
     }
 
     private Optional<BeanDefinition> getDefinitionByClass(Class<?> targetClass) {
+        if (targetClass.isInterface()) {
+            return beanDefinitions.values().stream()
+                .filter(def -> targetClass.isAssignableFrom(def.getTargetClass()))
+                .findFirst();
+        }
         return beanDefinitions.values().stream()
             .filter(def -> def.getTargetClass().equals(targetClass))
             .findFirst();
