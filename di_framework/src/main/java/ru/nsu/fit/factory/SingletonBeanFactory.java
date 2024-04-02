@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 
 public class SingletonBeanFactory implements BeanFactory {
@@ -22,15 +21,11 @@ public class SingletonBeanFactory implements BeanFactory {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T doCreateBean(
-        Class<T> tClass,
-        Map<Class<?>, BeanDefinition> beanDefinitions,
-        List<Class<?>> creationChain
-    ) {
+    public <T> T doCreateBean(Class<T> tClass, List<Class<?>> creationChain) {
         if (beanFactory.containsKey(tClass)) {
             return (T) beanFactory.get(tClass);
         } else {
-            T bean = (T) beanInitializer.initBean(tClass, beanDefinitions, creationChain);
+            T bean = (T) beanInitializer.initBean(tClass, creationChain);
             beanFactory.put(tClass, bean);
             return bean;
         }

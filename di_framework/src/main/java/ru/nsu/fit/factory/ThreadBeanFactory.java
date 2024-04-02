@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 
 public class ThreadBeanFactory implements BeanFactory {
@@ -22,11 +21,7 @@ public class ThreadBeanFactory implements BeanFactory {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T doCreateBean(
-        Class<T> tClass,
-        Map<Class<?>, BeanDefinition> beanDefinitions,
-        List<Class<?>> creationChain
-    ) {
+    public <T> T doCreateBean(Class<T> tClass, List<Class<?>> creationChain) {
         long threadId = Thread.currentThread().getId();
         if (threadToBeanFactory.containsKey(threadId) && threadToBeanFactory.get(threadId).containsKey(tClass)) {
             return (T) threadToBeanFactory.get(threadId).get(tClass);
@@ -37,7 +32,7 @@ public class ThreadBeanFactory implements BeanFactory {
         } else {
             currentThreadFactory = threadToBeanFactory.get(threadId);
         }
-        T bean = (T) beanInitializer.initBean(tClass, beanDefinitions, creationChain);
+        T bean = (T) beanInitializer.initBean(tClass, creationChain);
         currentThreadFactory.put(tClass, bean);
         threadToBeanFactory.put(threadId, currentThreadFactory);
         return bean;

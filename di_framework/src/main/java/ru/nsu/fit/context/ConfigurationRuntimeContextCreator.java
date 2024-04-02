@@ -60,7 +60,7 @@ public class ConfigurationRuntimeContextCreator implements ContextCreator {
 
         return BeanDefinition.builder()
             .name(name)
-            .className(method.getReturnType().getName())
+            .targetClass(method.getReturnType())
             .lifeCycle(lifeCycle)
             .constructorParams(Arrays.stream(method.getParameters()).map(Parameter::getName).toList())
             .build();

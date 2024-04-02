@@ -1,9 +1,7 @@
 package ru.nsu.fit.factory;
 
 import java.util.List;
-import java.util.Map;
 
-import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 
 public class PrototypeBeanFactory implements BeanFactory {
@@ -20,11 +18,7 @@ public class PrototypeBeanFactory implements BeanFactory {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T doCreateBean(
-        Class<T> tClass,
-        Map<Class<?>, BeanDefinition> beanDefinitions,
-        List<Class<?>> creationChain
-    ) {
-        return (T) beanInitializer.initBean(tClass, beanDefinitions, creationChain);
+    public <T> T doCreateBean(Class<T> tClass, List<Class<?>> creationChain) {
+        return (T) beanInitializer.initBean(tClass, creationChain);
     }
 }

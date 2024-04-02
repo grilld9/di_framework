@@ -30,11 +30,11 @@ public class ComponentRuntimeRecordContextCreator implements ContextCreator {
             .toList();
     }
 
-    private BeanDefinition toBeanDefinition(Class<?> aClass) {
+    private BeanDefinition toBeanDefinition(Class<?> targetClass) {
         return BeanDefinition.builder()
-            .name(BeanUtils.getBeanName(aClass))
-            .className(aClass.getName())
-            .lifeCycle(BeanUtils.getBeanLifeCycle(aClass))
+            .name(BeanUtils.getBeanName(targetClass))
+            .targetClass(targetClass)
+            .lifeCycle(BeanUtils.getBeanLifeCycle(targetClass))
             .build();
     }
 }

@@ -1,12 +1,12 @@
 package ru.nsu.fit.injection;
 
-import ru.nsu.fit.model.ApplicationContext;
+import java.util.Map;
 
 public interface InjectionProvider {
     /**
      * Заинжектить зависимости, используя контекст приложения.
      *
-     * @param context контекст
+     * @param beans бины
      */
-    void inject(ApplicationContext context);
+    void inject(Map<Class<?>, Object> beans);
 }

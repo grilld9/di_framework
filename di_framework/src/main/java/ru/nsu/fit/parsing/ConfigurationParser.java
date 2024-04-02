@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import lombok.extern.slf4j.Slf4j;
-import ru.nsu.fit.model.BeanDefinition;
+import ru.nsu.fit.model.JsonBeanDefinition;
 
 import java.io.BufferedReader;
 
@@ -17,11 +17,11 @@ import java.util.List;
 @Slf4j
 public class ConfigurationParser {
 
-    public static List<BeanDefinition> parse(Path path) {
+    public static List<JsonBeanDefinition> parse(Path path) {
         Gson gson = new Gson();
-        List<BeanDefinition> beans = new ArrayList<>();
+        List<JsonBeanDefinition> beans = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(path.toString()))) {
-            TypeToken<List<BeanDefinition>> beanListType = new TypeToken<>() {
+            TypeToken<List<JsonBeanDefinition>> beanListType = new TypeToken<>() {
             };
             beans = gson.fromJson(reader, beanListType);
         } catch (IOException e) {

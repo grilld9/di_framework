@@ -10,7 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class BeanDefinition {
-    private String className;
+    private Class<?> targetClass;
     private String name;
     private LifeCycle lifeCycle;
     private List<String> constructorParams;
