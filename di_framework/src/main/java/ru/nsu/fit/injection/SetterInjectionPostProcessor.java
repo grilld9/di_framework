@@ -13,11 +13,11 @@ import java.util.List;
 import javax.inject.Inject;
 
 @RequiredArgsConstructor
-public class SetterInjectionProvider implements InjectionProvider {
+public class SetterInjectionPostProcessor implements BeanPostProcessor {
     private final BeanInitializer beanInitializer;
 
     @Override
-    public void inject(Object bean) {
+    public void process(Object bean) {
         Class<?> targetClass = bean.getClass();
         List<Method> injectionMethods = Arrays.stream(targetClass.getDeclaredMethods())
             .filter(method -> BeanUtils.isAnnotatedWith(method, Inject.class))

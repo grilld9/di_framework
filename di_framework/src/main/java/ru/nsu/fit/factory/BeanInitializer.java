@@ -2,7 +2,6 @@ package ru.nsu.fit.factory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,9 +14,10 @@ import javax.inject.Inject;
 import ru.nsu.fit.exception.BeanDefinitionNotFoundException;
 import ru.nsu.fit.exception.BeanInstantiationException;
 import ru.nsu.fit.exception.CircularDependencyException;
-import ru.nsu.fit.injection.FieldInjectionProvider;
-import ru.nsu.fit.injection.InjectionProvider;
-import ru.nsu.fit.injection.SetterInjectionProvider;
+import ru.nsu.fit.injection.BeanPostProcessor;
+import ru.nsu.fit.injection.FieldInjectionPostProcessor;
+import ru.nsu.fit.injection.SetterInjectionPostProcessor;
+import ru.nsu.fit.injection.ValueInjectionPostProcessor;
 import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 import ru.nsu.fit.utility.BeanUtils;
@@ -29,9 +29,10 @@ public class BeanInitializer {
         new SingletonBeanFactory(this),
         new ThreadBeanFactory(this)
     );
-    private final List<InjectionProvider> injectionProviderList = List.of(
-        new FieldInjectionProvider(this),
-        new SetterInjectionProvider(this)
+    private final List<BeanPostProcessor> injectionProviderList = List.of(
+        new FieldInjectionPostProcessor(this),
+        new SetterInjectionPostProcessor(this),
+        new ValueInjectionPostProcessor()
     );
 
     public BeanInitializer(Map<String, BeanDefinition> beanDefinitions) {
@@ -48,15 +49,11 @@ public class BeanInitializer {
         return doCreateBean(name, creationChain);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T doCreateBean(Class<T> targetClass, List<Class<?>> creationChain) {
         BeanDefinition beanDefinition = getDefinitionByClass(targetClass)
             .orElseThrow(() -> new BeanDefinitionNotFoundException(targetClass));
-        LifeCycle lifeCycle = beanDefinition.getLifeCycle();
-        return beanFactories.stream()
-            .filter(factory -> factory.isApplicable(lifeCycle))
-            .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Life cycle %s is not supported".formatted(lifeCycle)))
-            .doCreateBean(targetClass, creationChain);
+        return (T) createWithDefinition(beanDefinition, creationChain);
     }
 
     public Object doCreateBean(String name, List<Class<?>> creationChain) {
@@ -64,6 +61,10 @@ public class BeanInitializer {
             throw new IllegalStateException("Cannot find bean definition for name " + name);
         }
         BeanDefinition beanDefinition = beanDefinitions.get(name);
+        return createWithDefinition(beanDefinition, creationChain);
+    }
+
+    public Object createWithDefinition(BeanDefinition beanDefinition, List<Class<?>> creationChain) {
         LifeCycle lifeCycle = beanDefinition.getLifeCycle();
         return beanFactories.stream()
             .filter(factory -> factory.isApplicable(lifeCycle))
@@ -88,11 +89,10 @@ public class BeanInitializer {
             Constructor<?> defaultConstructor = optionalConstructor.isEmpty() ?
                 getNoArgsConstructor(creationClass) : optionalConstructor.get();
             Object[] args = Arrays.stream(defaultConstructor.getParameters())
-                .map(Parameter::getType)
-                .map(parameter -> doCreateBean(parameter, creationChain))
+                .map(parameter -> doCreateBean(parameter.getType(), creationChain))
                 .toArray();
             Object createdBean = defaultConstructor.newInstance(args);
-            injectionProviderList.forEach(provider -> provider.inject(createdBean));
+            injectionProviderList.forEach(provider -> provider.process(createdBean));
             return createdBean;
         } catch (ReflectiveOperationException | NoSuchElementException ex) {
             throw new BeanInstantiationException(creationClass);

@@ -10,11 +10,11 @@ import java.util.Arrays;
 import javax.inject.Inject;
 
 @RequiredArgsConstructor
-public class FieldInjectionProvider implements InjectionProvider {
+public class FieldInjectionPostProcessor implements BeanPostProcessor {
     private final BeanInitializer beanInitializer;
 
     @Override
-    public void inject(Object bean) {
+    public void process(Object bean) {
         Class<?> aClass = bean.getClass();
         Arrays.stream(aClass.getDeclaredFields())
             .filter(field -> BeanUtils.isAnnotatedWith(field, Inject.class))
