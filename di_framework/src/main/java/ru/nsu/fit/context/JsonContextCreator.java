@@ -1,6 +1,7 @@
 package ru.nsu.fit.context;
 
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -18,44 +19,17 @@ public class JsonContextCreator implements ContextCreator {
     @Override
     public List<BeanDefinition> createContext() {
         List<BeanDefinition> beans = ConfigurationParser.parse(Paths.get("src/main/resources/application.json"));
-        for (BeanDefinition bean : beans) {
-            Class<?> aClass = validateByClassName(bean.getClassName(), LotusApplication.class.getPackageName());
-            validateConstructorParams(bean.getConstructorParams(), aClass);
+        if (beans == null) {
+            return new ArrayList<>();
         }
         return beans;
-    }
-
-    private void validateConstructorParams(List<String> constructorParams, Class<?> aClass) {
-        Set<Class<?>> paramsTypes = constructorParams
-            .stream()
-            .map(param -> validateByClassName(param, aClass.getPackageName()))
-            .collect(Collectors.toSet());
-        if (Arrays.stream(aClass.getConstructors())
-            .noneMatch(constructor ->
-                Arrays.stream(constructor.getParameterTypes())
-                    .collect(Collectors.toSet())
-                    .equals(paramsTypes))) {
-            throw new RuntimeException("Конструктор с параметрами %s не найден в классе %s".formatted(
-                constructorParams,
-                aClass.getName()
-            ));
-        }
-    }
-
-    private Class<?> validateByClassName(String className, String packageName) {
-        return new Reflections(packageName, new SubTypesScanner(false))
-            .getSubTypesOf(Object.class)
-            .stream()
-            .filter(aClass -> aClass.getName().equals(className))
-            .findAny().orElseThrow(() -> new RuntimeException("Класса " + className + " не существует"));
     }
 
     @Override
     public List<BeanDefinition> createContext(String packageName) {
         List<BeanDefinition> beans = ConfigurationParser.parse(Paths.get("src/main/resources/application.json"));
-        for (BeanDefinition bean : beans) {
-            Class<?> aClass = validateByClassName(bean.getClassName(), packageName);
-            validateConstructorParams(bean.getConstructorParams(), aClass);
+        if (beans == null) {
+            return new ArrayList<>();
         }
         return beans;
     }
