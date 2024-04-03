@@ -1,0 +1,9 @@
+[{"className":"ru.nsu.fit.presentation.fromJson.Hammer",
+  "name":"hammer",
+  "lifeCycle":"SINGLETON",
+  "constructorParams":[]},
+  {"className":"ru.nsu.fit.presentation.fromJson.Tor",
+    "name":"tor",
+    "lifeCycle":"SINGLETON",
+    "constructorParams":["hammer"]
+  }]
