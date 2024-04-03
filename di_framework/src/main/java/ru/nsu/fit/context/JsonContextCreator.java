@@ -37,7 +37,6 @@ public class JsonContextCreator implements ContextCreator {
 
     private BeanDefinition validateAndEnrich(JsonBeanDefinition jsonDef, String packageName) {
         Class<?> targetClass = getByClassName(jsonDef.getClassName(), packageName);
-        validateConstructorParams(jsonDef.getConstructorParams(), targetClass);
         return toDefinition(jsonDef, targetClass);
     }
 
@@ -48,22 +47,6 @@ public class JsonContextCreator implements ContextCreator {
             .lifeCycle(jsonDef.getLifeCycle())
             .constructorParams(jsonDef.getConstructorParams())
             .build();
-    }
-
-    private void validateConstructorParams(List<String> constructorParams, Class<?> aClass) {
-        Set<Class<?>> paramsTypes = constructorParams.stream()
-            .map(param -> getByClassName(param, aClass.getPackageName()))
-            .collect(Collectors.toSet());
-        if (Arrays.stream(aClass.getConstructors())
-            .noneMatch(constructor ->
-                Arrays.stream(constructor.getParameterTypes())
-                    .collect(Collectors.toSet())
-                    .equals(paramsTypes))) {
-            throw new RuntimeException("Конструктор с параметрами %s не найден в классе %s".formatted(
-                constructorParams,
-                aClass.getName()
-            ));
-        }
     }
 
     private Class<?> getByClassName(String className, String packageName) {
