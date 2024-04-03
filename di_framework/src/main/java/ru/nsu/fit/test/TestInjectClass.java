@@ -11,16 +11,16 @@ import ru.nsu.fit.annotation.Value;
 @Getter
 @RequiredArgsConstructor
 public class TestInjectClass {
-    @Value("OLolololo")
+    @Value("inject.value")
     private String value;
 
-    @Value("32")
+    @Value("inject.value-2")
     private Integer value2;
 
-    @Value("3")
+    @Value("inject.value-3")
     private Integer value3;
 
-    @Value("2021-12-11T10:09:08.00Z")
+    @Value("inject.value-instant")
     private Instant instant;
 
     private final TestBeanClass bean;

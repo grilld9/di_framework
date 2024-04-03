@@ -1,5 +1,7 @@
 package ru.nsu.fit.injection;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 
 import java.lang.reflect.InvocationTargetException;
@@ -8,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 
 import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;
@@ -54,7 +57,12 @@ public class ValueInjectionPostProcessor implements BeanPostProcessor {
     private void inject(Field field, Object bean) {
         field.setAccessible(true);
         try {
+            Properties properties = new Properties();
+            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            InputStream stream = loader.getResourceAsStream("application.properties");
+            properties.load(stream);
             String value = field.getAnnotationsByType(Value.class)[0].value();
+            value = properties.getProperty(value);
             if (field.getType() != String.class) {
                 ValueConverter converter = converterList.stream()
                     .filter(valueConverter -> valueConverter.isApplicable(field.getType()))
@@ -65,6 +73,8 @@ public class ValueInjectionPostProcessor implements BeanPostProcessor {
                 field.set(bean, value);
             }
         } catch (IllegalAccessException | IllegalArgumentException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
