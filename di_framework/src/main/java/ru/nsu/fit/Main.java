@@ -3,6 +3,7 @@ package ru.nsu.fit;
 import javax.inject.Provider;
 
 import ru.nsu.fit.model.ApplicationContext;
+import ru.nsu.fit.test.TestInjectClass;
 import ru.nsu.fit.test.TestPrototypeComponent;
 import ru.nsu.fit.test.TestSingletonComponent;
 import ru.nsu.fit.test.TestSingletonWithPrototype;
@@ -31,6 +32,8 @@ public class Main {
                 System.out.println(testThreadComponent);
                 testThreadComponent = context.getBean(TestThreadComponent.class);
                 System.out.println(testThreadComponent);
+                System.out.println("Here!");
+                System.out.println(testThreadComponent.getSomeInterface());
             });
             thread.start();
             thread.join();
@@ -46,5 +49,14 @@ public class Main {
         Provider<TestSingletonComponent> singletonComponentProvider = context.getProvider(TestSingletonComponent.class);
         System.out.println(singletonComponentProvider.get());
         System.out.println(singletonComponentProvider.get());
+
+        TestInjectClass testInjectClass = context.getBean(TestInjectClass.class);
+        System.out.println(testInjectClass.getValue());
+        System.out.println(testInjectClass.getValue2());
+        System.out.println(testInjectClass.getValue3());
+
+        Object testInjectClassObject = context.getBean("TestInjectClass");
+        System.out.println(testInjectClassObject);
+        System.out.println(testInjectClass.getInstant());
     }
 }

@@ -1,12 +1,10 @@
 package ru.nsu.fit.injection;
 
-import ru.nsu.fit.model.ApplicationContext;
-
-public interface InjectionProvider {
+public interface BeanPostProcessor {
     /**
      * Заинжектить зависимости, используя контекст приложения.
      *
-     * @param context контекст
+     * @param bean бин
      */
-    void inject(ApplicationContext context);
+    void process(Object bean);
 }

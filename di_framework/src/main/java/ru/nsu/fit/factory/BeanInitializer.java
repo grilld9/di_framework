@@ -2,7 +2,7 @@ package ru.nsu.fit.factory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -11,41 +11,73 @@ import java.util.Optional;
 
 import javax.inject.Inject;
 
+import ru.nsu.fit.exception.BeanDefinitionNotFoundException;
 import ru.nsu.fit.exception.BeanInstantiationException;
-import ru.nsu.fit.exception.BeanParameterException;
 import ru.nsu.fit.exception.CircularDependencyException;
+import ru.nsu.fit.injection.BeanPostProcessor;
+import ru.nsu.fit.injection.FieldInjectionPostProcessor;
+import ru.nsu.fit.injection.SetterInjectionPostProcessor;
+import ru.nsu.fit.injection.ValueInjectionPostProcessor;
 import ru.nsu.fit.model.BeanDefinition;
 import ru.nsu.fit.model.LifeCycle;
 import ru.nsu.fit.utility.BeanUtils;
 
 public class BeanInitializer {
+    private final Map<String, BeanDefinition> beanDefinitions;
     private final List<BeanFactory> beanFactories = List.of(
         new PrototypeBeanFactory(this),
         new SingletonBeanFactory(this),
         new ThreadBeanFactory(this)
     );
+    private final List<BeanPostProcessor> injectionProviderList = List.of(
+        new FieldInjectionPostProcessor(this),
+        new SetterInjectionPostProcessor(this),
+        new ValueInjectionPostProcessor()
+    );
 
-    public <T> T doCreateBean(
-        Class<T> aClass,
-        Map<Class<?>, BeanDefinition> beanDefinitions,
-        List<Class<?>> creationChain
-    ) {
-        if (!beanDefinitions.containsKey(aClass)) {
-            throw new IllegalStateException("Cannot find bean definition for class " + aClass);
+    public BeanInitializer(Map<String, BeanDefinition> beanDefinitions) {
+        this.beanDefinitions = beanDefinitions;
+    }
+
+    public <T> T getBean(Class<T> targetClass) {
+        List<Class<?>> creationChain = new ArrayList<>();
+        return doCreateBean(targetClass, creationChain);
+    }
+
+    public Object getBean(String name) {
+        List<Class<?>> creationChain = new ArrayList<>();
+        return doCreateBean(name, creationChain);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T doCreateBean(Class<T> targetClass, List<Class<?>> creationChain) {
+        BeanDefinition beanDefinition = getDefinitionByClass(targetClass)
+            .orElseThrow(() -> new BeanDefinitionNotFoundException(targetClass));
+        return (T) createWithDefinition(beanDefinition, creationChain);
+    }
+
+    public Object doCreateBean(String name, List<Class<?>> creationChain) {
+        if (!beanDefinitions.containsKey(name)) {
+            throw new IllegalStateException("Cannot find bean definition for name " + name);
         }
-        LifeCycle lifeCycle = beanDefinitions.get(aClass).getLifeCycle();
+        BeanDefinition beanDefinition = beanDefinitions.get(name);
+        return createWithDefinition(beanDefinition, creationChain);
+    }
+
+    public Object createWithDefinition(BeanDefinition beanDefinition, List<Class<?>> creationChain) {
+        LifeCycle lifeCycle = beanDefinition.getLifeCycle();
         return beanFactories.stream()
             .filter(factory -> factory.isApplicable(lifeCycle))
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("Life cycle %s is not supported".formatted(lifeCycle)))
-            .doCreateBean(aClass, beanDefinitions, creationChain);
+            .doCreateBean(beanDefinition.getTargetClass(), creationChain);
     }
 
     public Object initBean(
-        Class<?> creationClass,
-        Map<Class<?>, BeanDefinition> classToBeanDef,
+        Class<?> targetClass,
         List<Class<?>> creationChain
     ) {
+        Class<?> creationClass = getCreationType(targetClass);
         try {
             if (creationChain.contains(creationClass)) {
                 throw new CircularDependencyException(creationChain, creationClass);
@@ -57,25 +89,22 @@ public class BeanInitializer {
             Constructor<?> defaultConstructor = optionalConstructor.isEmpty() ?
                 getNoArgsConstructor(creationClass) : optionalConstructor.get();
             Object[] args = Arrays.stream(defaultConstructor.getParameters())
-                .map(Parameter::getType)
-                .map(parameter -> validateClass(parameter, creationClass, classToBeanDef))
-                .map(parameter -> doCreateBean(parameter, classToBeanDef, creationChain))
+                .map(parameter -> doCreateBean(parameter.getType(), creationChain))
                 .toArray();
-            return defaultConstructor.newInstance(args);
+            Object createdBean = defaultConstructor.newInstance(args);
+            injectionProviderList.forEach(provider -> provider.process(createdBean));
+            return createdBean;
         } catch (ReflectiveOperationException | NoSuchElementException ex) {
             throw new BeanInstantiationException(creationClass);
         }
     }
 
-    private Class<?> validateClass(
-        Class<?> parameterType,
-        Class<?> creationClass,
-        Map<Class<?>, BeanDefinition> classToBeanDef
-    ) {
-        if (!classToBeanDef.containsKey(parameterType)) {
-            throw new BeanParameterException(creationClass, parameterType);
+    private Class<?> getCreationType(Class<?> targetClass) {
+        Optional<BeanDefinition> optionalBeanDefinition = getDefinitionByClass(targetClass);
+        if (optionalBeanDefinition.isEmpty()) {
+            throw new BeanDefinitionNotFoundException(targetClass);
         }
-        return parameterType;
+        return optionalBeanDefinition.get().getTargetClass();
     }
 
     private Constructor<?> getNoArgsConstructor(Class<?> aClass) {
@@ -86,5 +115,22 @@ public class BeanInitializer {
             .filter(constructor -> constructor.getParameters().length <= finalFieldCount)
             .findFirst()
             .orElseThrow();
+    }
+
+    private Optional<BeanDefinition> getDefinitionByClass(Class<?> targetClass) {
+        if (targetClass.isInterface()) {
+            return beanDefinitions.values().stream()
+                .filter(def -> targetClass.isAssignableFrom(def.getTargetClass()))
+                .findFirst();
+        }
+        return beanDefinitions.values().stream()
+            .filter(def -> def.getTargetClass().equals(targetClass))
+            .findFirst();
+    }
+
+    public void initializeBeans() {
+        beanDefinitions.entrySet().stream()
+            .filter(def -> def.getValue().getLifeCycle() != LifeCycle.PROTOTYPE)
+            .forEach(def -> getBean(def.getKey()));
     }
 }

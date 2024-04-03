@@ -3,5 +3,5 @@ package ru.nsu.fit.test;
 import ru.nsu.fit.annotation.Component;
 
 @Component
-public record TestSingletonWithPrototype(TestPrototypeComponent testPrototypeComponent) {
+public record TestSingletonWithPrototype(SomeInterface testPrototypeComponent) {
 }
